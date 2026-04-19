@@ -1,44 +1,57 @@
 # EPITA 2026 - Programmation par Contraintes
 ## Liste des sujets de projet
 
-Ce document presente 33 sujets de projet pour le cours de Programmation par Contraintes.
-Chaque sujet inclut une description, des references, des approches suggerees et les technologies pertinentes.
+Ce document presente les sujets de projet pour le cours de Programmation par Contraintes (SCIA).
+Chaque sujet inclut une description detaillee, des references academiques et pratiques, des liens vers des ressources de bootstrapping (tutoriels, notebooks, benchmarks), et les technologies pertinentes.
+
+> **Consignes de choix** : Chaque groupe doit forker ce depot et creer un dossier pour son projet contenant le code source, un notebook explicatif, et les slides de soutenance. Les livraisons se font via des pull requests regulieres.
 
 ---
 
+## Ressources communes a tous les sujets
 
-## 1. Optimisation de plannings infirmiers avec assistance LLM
+### Solveurs et outils
+- **Google OR-Tools CP-SAT** : le solveur de reference pour ce cours. [Documentation officielle](https://developers.google.com/optimization/cp/cp_solver), [Guide Python](https://developers.google.com/optimization/cp/introduction), [Exemples par probleme](https://github.com/google/or-tools/tree/stable/examples/python)
+- **Z3 SMT Solver** : pour les problemes de verification et de raisonnement symbolique. [Documentation](https://z3prover.github.io/api/html/namespacez3py.html), [Tutoriel Python](https://ericpony.github.io/z3py-tutorial/guide-examples.htm)
+- **MiniZinc** : langage de modelisation CP de haut niveau. [Tutoriel](https://www.minizinc.org/doc-2.5.5/en/), [Benchmarks](https://www.minizinc.org/challenge.html)
+- **CPMpy** : interface Python pour CP avec backends multiples. [Documentation](https://cpmpy.readthedocs.io/), [Exemples](https://github.com/CPMpy/cpmpy/tree/master/examples)
 
-### Description du probleme et contexte
-La confection de horaires de travail pour le personnel infirmier (nurse rostering) est un probleme d'optimisation combinatoire complexe. Les contraintes incluent la legislation du travail, les competences du personnel, les preferences et l'equite. Ce sujet propose d'integrer des LLM (via MCP ou function calling) pour assister dans la formulation des contraintes et l'explication des solutions.
+### Benchmarks et instances
+- **CSPLib** : bibliotheque de problemes CP de reference. [En ligne](https://www.csplib.org/)
+- **OR-Library** : instances pour problemes d'OR. [Beasley's OR-Library](http://people.brunel.ac.uk/~mastjjb/jeb/info.html)
+- **MiniZinc Challenge Benchmarks** : instances de competition. [GitHub](https://github.com/minizinc/minizinc-benchmarks)
 
-### References
-- Burke et al. - A Multi-Objective Meta-Heuristic for Nurse Rostering - 2004
-- Laborie - IBM ILOG CP Optimizer for scheduling - 2018
-- SolverMax - OR-Tools Nurse Rostering Example
-- Soon.works - LLM-assisted Constraint Programming - 2023
-
-### Approches suggerees
-- Modelisation CP avec contraintes globales (sequence, stretch, cumulative)
-- Integration LLM pour l'analyse des demandes et generation de contraintes
-- Optimisation multi-objectifs (minimiser couts, maximiser satisfaction)
-- Exploration avec Metaheuristiques (recuit simule, algorithmes genetiques)
-
-### Technologies pertinentes
-Python, OR-Tools CP-SAT, OpenAI API/LM Studio, MCP Server
+### Notebooks du cours
+- **Notebook Agentique** : pour la creation et finalisation automatisee de notebooks de projet
+- **Integration LLM** : function calling avec OpenAI/MCP pour assister la modelisation CP. Voir [Function Calling - OpenAI](https://platform.openai.com/docs/guides/function-calling) et [MCP Specification](https://modelcontextprotocol.io/)
 
 ---
 
-## 2. Probleme d'echange de reins (Kidney Exchange)
+## 1. Probleme d'echange de reins (Kidney Exchange)
 
 ### Description du probleme et contexte
-Le kidney exchange problem consiste a trouver des cycles de donneurs-receveurs incompatibles pour maximiser le nombre de transplantations. C'est un probleme de matching dans des graphes orientes avec contraintes de poids et de longueurs de cycles. Ce sujet est un classique de la RO avec un reel impact social.
+Le kidney exchange problem consiste a trouver des cycles de donneurs-receveurs incompatibles pour maximiser le nombre de transplantations. C'est un probleme de matching dans des graphes orientes avec contraintes de poids et de longueurs de cycles. Ce sujet est un classique de la RO avec un reel impact social. Les instances reelles viennent de programmes d'echange comme l'UNOS (USA) et le NAPRT (UK).
 
 ### References
-- Roth, Sonmez, Unver - Kidney Exchange - American Economic Review - 2007
-- Abraham, Blum, Sandholm - Clearing Algorithms for Barter Exchange Markets - EC 2007
-- Wikipedia - Optimal kidney exchange problem
-- jamestrimble/kidney_solver (GitHub)
+- Roth, Sonmez, Unver - *Kidney Exchange* - American Economic Review - 2007. [PDF](https://www.nber.org/system/files/working_papers/w10702/w10702.pdf)
+- Abraham, Blum, Sandholm - *Clearing Algorithms for Barter Exchange Markets* - EC 2007. [PDF](https://www.cs.cmu.edu/~sandholm/clearing.ec07.pdf)
+- [Wikipedia - Optimal kidney exchange problem](https://en.wikipedia.org/wiki/Optimal_kidney_exchange)
+- [jamestrimble/kidney_solver (GitHub)](https://github.com/jamestrimble/kidney_solver) - Implementation Python + Gurobi
+
+### Point de depart
+```python
+# Modelisation CP-SAT : cycles dans un graphe oriente pondere
+from ortools.sat.python import cp_model
+
+# Variables : pour chaque paire (i,j), x[i][j] = 1 si i donne a j
+# Contrainte : chaque sommet a au plus un predecesseur et un successeur
+# Contrainte : cycles de longueur <= k (typiquement k=3)
+# Objectif : maximiser la somme des poids des aretes selectionnees
+```
+
+### Instances et donnees
+- [PrefLib - Kidney Exchange instances](https://www.preflib.org/dataset/Kidney)
+- [OPTN kidney paired donation data](https://optn.transplant.hrsa.gov/)
 
 ### Approches suggerees
 - Modelisation comme graphe oriente avec cycles disjoints
@@ -51,36 +64,31 @@ Python, OR-Tools CP-SAT, NetworkX, PuLP
 
 ---
 
-## 3. Ordonnancement de production (Job-Shop Scheduling)
+## 2. Equilibrage de chaine d'assemblage (Assembly Line Balancing)
 
 ### Description du probleme et contexte
-Le Job-Shop Scheduling Problem (JSP) consiste a ordonnancer N jobs sur M machines, chaque job ayant un ordre de operations predefini. L'objectif est de minimiser le makespan (temps total d'achevement). C'est un probleme NP-difficile avec de nombreuses applications industrielles.
+L'Assembly Line Balancing Problem (SALBP) vise a repartir les taches de production entre les stations de travail tout en respectant les contraintes de precedence et en minimisant le nombre de stations. C'est un probleme classique en gestion de production avec de nombreuses variantes (SALBP-1: minimiser stations pour un temps de cycle fixe, SALBP-2: minimiser temps de cycle pour un nombre de stations fixe).
 
 ### References
-- sysid blog - Job Shop Scheduling with CP-SAT
-- IBM CP Optimizer Documentation
-- Carlier and Pinson - An Algorithm for Job-Shop Scheduling - 1982
-- Beck et al. - A Constraint-Guided Search Method for JSP - 2004
+- [Hexaly - SALBP Benchmark Documentation](https://www.hexaly.com/documentation/advanced_examples/salbp.html)
+- Scholl and Becker - *State-of-the-art exact and heuristic solution procedures* - 2006. [PDF](https://publikationen.bibliothek.kit.edu/1000023755/894942)
+- [SALBP Benchmark instances (Scholl)](https://algorithmskeinprobleme.github.io/Assembly-Line-Balancing-Problem/)
+- [OR-Tools SALBP example](https://github.com/google/or-tools/blob/stable/examples/python/salbp.py) (si disponible)
 
-### Approches suggerees
-- Modelisation CP avec intervalles et contraintes de precedence
-- Disjunctive constraints pour les ressources machines
-- Heuristiques de branchement (LNS, Large Neighborhood Search)
-- Comparaison avec metaheuristiques (genetique, recuit)
+### Point de depart
+```python
+# Modelisation CP-SAT : assignation de taches a des stations
+from ortools.sat.python import cp_model
 
-### Technologies pertinentes
-Python, OR-Tools CP-SAT, CPM (Critical Path Method)
+# Variables : station[t] = numero de station pour la tache t
+# Contraintes : precedence => station[t1] < station[t2]
+# Contraintes : temps total par station <= temps de cycle
+# Objectif : minimiser le nombre de stations utilisees
+```
 
----
-
-## 4. Equilibrage de chaine d'assemblage (Assembly Line Balancing)
-
-### Description du probleme et contexte
-L'Assembly Line Balancing Problem (SALBP) vise a repartir les taches de production entre les stations de travail tout en respectant les contraintes de precedence et en minimisant le nombre de stations. C'est un probleme classique en gestion de production avec de nombreuses variantes.
-
-### References
-- Hexaly - SALBP Benchmark Documentation
-- Scholl and Becker - State-of-the-art exact and heuristic solution procedures - 2006
+### Instances et donnees
+- [SALBP-1 Benchmark (data files)](http://algorithmskeinprobleme.github.io/Assembly-Line-Balancing-Problem/instances.html)
+- [Assembly Line Balancing instances - PrefLib](https://www.preflib.org/)
 
 ### Approches suggerees
 - Modelisation CP avec precedence constraints
@@ -93,37 +101,29 @@ Python, OR-Tools CP-SAT, Hexaly
 
 ---
 
-## 5. Tournees de vehicules (VRP) / Optimisation de tournees vertes
+## 3. Conception de chaine logistique (Supply Chain Network Design)
 
 ### Description du probleme et contexte
-Le Vehicle Routing Problem (VRP) consiste a determiner les routes optimales pour une flotte de vehicules devant servir des clients. Les variantes incluent les contraintes de capacite, de fenetres de temps, et les objectifs ecologiques (minimisation emissions CO2).
+La conception de reseau logistique implique de localiser les installations (usines, entrepots) et de determiner les flux de marchandises pour minimiser les couts tout en satisfaisant la demande. C'est un probleme de localisation-allocation avec contraintes de capacite. Applications : logistique e-commerce, distribution pharmaceutique, aide humanitaire.
 
 ### References
-- PyVRP Documentation
-- Toth and Vigo - The Vehicle Routing Problem - 2014
-- Haddadene et al. - Electric VRP - 2016
-- Shaw - Using Constraint Programming - 1998
+- Ozgur and Polat - *Supply Chain Network Design* - 2016
+- Sabharwal et al. - *Formulating Fixed-Charge Network Design* - 2023
+- Dotoli et al. - *Multi-Objective Optimization* - 2005
+- [OR-Tools Facility Location example](https://developers.google.com/optimization/cp/cp_solver)
 
-### Approches suggerees
-- Modelisation CP avec routes comme sequences
-- Contraintes de capacite et fenetres de temps
-- VRP electrique : autonomie, stations de recharge
-- Column Generation et LNS pour grandes instances
+### Point de depart
+```python
+# Modelisation CP-SAT : localisation-allocation
+# Variables : open[w] = 1 si l'entrepot w est ouvert
+#            flow[w,c] = quantite envoyee de w au client c
+# Contraintes : capacite des entrepots, couverture de la demande
+# Objectif : minimiser couts fixes (ouverture) + couts variables (transport)
+```
 
-### Technologies pertinentes
-Python, OR-Tools Routing, PyVRP, NetworkX
-
----
-
-## 6. Conception de chaine logistique (Supply Chain Network Design)
-
-### Description du probleme et contexte
-La conception de reseau logistique implique de localiser les installations (usines, entrepots) et de determiner les flux de marchandises pour minimiser les couts tout en satisfaisant la demande. C'est un probleme de localisation-allocation avec contraintes de capacite.
-
-### References
-- Ozgur and Polat - Supply Chain Network Design - 2016
-- Sabharwal et al. - Formulating Fixed-Charge Network Design - 2023
-- Dotoli et al. - Multi-Objective Optimization - 2005
+### Instances et donnees
+- [Supply Chain Network Design instances](https://github.com/dscommunity-iitd/Simulated-Annealing-for-Supply-Chain-Network-Design)
+- [Capacitated Facility Location Problem instances](https://miplib.zib.de/instance_details_capacitated-facility-location.html)
 
 ### Approches suggerees
 - Modelisation p-median et p-center avec CP
@@ -136,292 +136,147 @@ Python, OR-Tools CP-SAT, PuLP, GeoPandas
 
 ---
 
-## 7. Calendriers universitaires / Planification d'emploi du temps
+## 4. Composition musicale assistee par contraintes
 
 ### Description du probleme et contexte
-La confection d'horaires universitaires (timetabling) implique d'assigner des cours a des salles et des creneaux horaires en evitant les conflits. Les contraintes incluent les preferences des enseignants, la capacite des salles, et la repartition equitable des cours.
+La composition musicale peut etre formulee comme un probleme de satisfaction de contraintes : harmonie, rythme, contrepoint, structure. La CP permet de generer des pieces musicales respectant des criteres esthetiques et theoriques. C'est un sujet original qui combine art et optimisation combinatoire.
 
 ### References
-- CLP (Constraint Logic Programming) Timetabling Paper
-- UniTime Documentation and PhD Thesis
-- Goltz et al. - University Timetabling with CP - 1999
-- Schaus - Constraint Programming for Timetabling - 2014
+- Anders - *Constraint Programming for Music Composition* - Wiley 2012. [Extrait](https://www.michael-anders.net/)
+- [IJCAI 2024 Tutorial on CP for Music](https://ijcai-24.org/)
+- Pachet and Roy - *FlowComposer* - 2014. [PDF](https://www.researchgate.net/publication/263148474_Flow_Composer_Harmonic_Generation_Guided_by_Tension-FLOW_Model)
+- Truchet and Assayag - *OpenMusic* - 2016. [Site](https://openmusic-project.github.io/)
+
+### Point de depart
+```python
+# Modelisation CP : generation d'une melodie sur 8 mesures
+# Variables : note[m, b] = hauteur (MIDI) de la note a mesure m, beat b
+# Contraintes : intervals melodiques, progression harmonique, resolution
+# Contraintes : registre (pas trop grave, pas trop aigu)
+# Integration : export vers MIDI via midiutil ou pretty_midi
+```
+
+### Ressources supplementaires
+- [music21 - toolkit for musicology](https://web.mit.edu/music21/) - Manipulation de partitions en Python
+- [MIDIUtil](https://github.com/MarkCWirt/MIDIUtil) - Generation de fichiers MIDI
+- [pretty_midi](https://github.com/craffel/pretty-midi) - Analyse et generation MIDI
 
 ### Approches suggerees
-- Modelisation CP avec variables d'assignation
-- Contraintes AllDifferent et table
-- Soft constraints et penalites
-- Metaheuristiques pour grandes instances
-
-### Technologies pertinentes
-Python, OR-Tools CP-SAT, pyschedule
-
----
-
-## 8. Calendrier sportif (Sports Tournament Scheduling)
-
-### Description du probleme et contexte
-L'ordonnancement de tournois sportifs consiste a planifier les rencontres entre equipes en respectant les contraintes de distance, de repos, et d'equite. Les variantes incluent les championnats round-robin et les tournois a elimination.
-
-### References
-- Regin - Modeling and Solving Sports Timetabling - 2008
-- Schaerf - Scheduling Sports Tournaments - 1999
-- ITC (International Timetabling Competition) 2021
-
-### Approches suggerees
-- Modelisation CP avec pattern-based approach
-- Contraintes de carry-over et d'equite
-- Optimisation des trajets et couts de deplacement
-- Decomposition : phases + finales
-
-### Technologies pertinentes
-Python, OR-Tools CP-SAT, pulp
-
----
-
-## 9. Variantes avancees du Sudoku par contraintes
-
-### Description du probleme et contexte
-Le Sudoku standard est un classique de la CP. Ce sujet explore des variantes plus complexes : Killer (regions avec sommes), Samurai (grilles imbriquees), Diagonal, et autres. L'objectif est de generaliser la modelisation pour differentes regles.
-
-### References
-- Simonis - Sudoku as a Constraint Problem - 2005
-- Norvig - Solving Every Sudoku Puzzle - 2006
-- Cracking The Cryptic (YouTube channel)
-
-### Approches suggerees
-- Modelisation CP avec table et AllDifferent
-- Extension pour contraintes arithmetiques (Killer)
-- Decomposition pour grilles imbriquees (Samurai)
-- Generation et difficulte automatique
-
-### Technologies pertinentes
-Python, OR-Tools CP-SAT, Z3
-
----
-
-## 10. Solveur de Wordle par CSP (et LLM)
-
-### Description du probleme et contexte
-Wordle est un jeu de mots ou il faut deviner un mot de 5 lettres en 6 essais. La resolution par CSP consiste a trouver tous les mots compatibles avec les indices (vertes/jaunes). L'integration LLM permet de filtrer par vraisemblance lexicale.
-
-### References
-- Asim - Solving Wordle with CP - 2022
-- hakank.org - OR-Tools Wordle solver
-- OpenAI Function Calling Documentation
-
-### Approches suggerees
-- Modelisation CSP avec contraintes sur les lettres
-- Filtrage par dictionnaire (WordNet, solutions lexicales)
-- LLM pour ranking des mots probables
-- Optimisation de la strategie de premier mot
-
-### Technologies pertinentes
-Python, OR-Tools CP-SAT, NLTK/WordNet, OpenAI API
-
----
-
-## 11. Resolution automatique du Demineur par contraintes
-
-### Description du probleme et contexte
-Le Demineur (Minesweeper) est un jeu de logique ou il faut deduire la position des mines a partir des indices numeriques. La modelisation CSP permet de resoudre les situations deterministes et de guider les choix probabilistes.
-
-### References
-- Bayer and Snyder - Minesweeper is NP-Complete - 2013
-- Kaye - Minesweeper is NP-Complete - 2000
-- jgesc/Minesweeper_CSP (GitHub)
-
-### Approches suggerees
-- Modelisation CSP avec contraintes de somme
-- Identification de configurations deterministes
-- Strategies probabilistes pour les cas ambigus
-- Integration avec reinforcement learning
-
-### Technologies pertinentes
-Python, OR-Tools CP-SAT, Z3, NumPy
-
----
-
-## 12. Construction de mots-croises par contraintes
-
-### Description du probleme et contexte
-La generation de mots-croises consiste a remplir une grille avec des mots valides en respectant les intersections et les definitions. C'est un probleme de satisfaction de contraintes avec une base de donnees lexicale.
-
-### References
-- pedtsr.ca - Crossword Generation with CP - 2023
-- SolverMax Crossword Example
-- Gervet - Constraint Programming for Crosswords - 1995
-- Wikipedia - Crossword -
-
-### Approches suggerees
-- Modelisation CSP avec contraintes d'intersection
-- Pre-traitement de la base de donnees lexicale
-- Generation de grilles avec themes
-- Difficulty estimation et indices
-
-### Technologies pertinentes
-Python, OR-Tools CP-SAT, NLTK/WordNet
-
----
-
-## 13. Probleme des mariages stables et School Choice
-
-### Description du probleme et contexte
-Le Stable Marriage Problem consiste a former des couples stables entre deux ensembles d'agents avec des preferences ordonnees. Les applications incluent l'affectation des etudiants aux ecoles (School Choice) et aux programmes de residency medicale.
-
-### References
-- Manlove - Stable Marriage with CP - 2008
-- Gale and Shapley - College Admissions - 1962
-- Gusfield and Irving - The Stable Marriage Problem - 1989
-
-### Approches suggerees
-- Algorithme de Gale-Shapley (deferred acceptance)
-- Modelisation CP avec contraintes de stabilite
-- Variants : incomplete preferences, ties, couples
-- Optimisation du welfare social
-
-### Technologies pertinentes
-Python, OR-Tools CP-SAT, NetworkX
-
----
-
-## 14. Coloration de graphe et de carte (Graph/Map Coloring)
-
-### Description du probleme et contexte
-La coloration de graphe consiste a assigner des couleurs aux sommets de sorte que les sommets adjacents aient des couleurs differentes. Les applications incluent la coloration de cartes (theoreme des 4 couleurs) et l'ordonnancement avec conflits.
-
-### References
-- AIMMS - CP Tutorial for Graph Coloring
-- phabe.ch - Graph Coloring with CP-SAT - 2019
-- Applegate and Cook - Chromatic Number Calculation - 1989
-
-### Approches suggerees
-- Modelisation CP avec contraintes AllDifferent
-- Branchement sur les sommets (DSATUR heuristic)
-- Pre-coloration et contraintes de symetrie
-- Application : timetabling et frequences radio
-
-### Technologies pertinentes
-Python, OR-Tools CP-SAT, NetworkX
-
----
-
-## 15. Composition musicale assistee par contraintes
-
-### Description du probleme et contexte
-La composition musicale peut etre formulee comme un probleme de satisfaction de contraintes : harmonie, rythme, contrepoint, structure. La CP permet de generer des pieces musicales respectant des criteres esthetiques et theoriques.
-
-### References
-- Anders - Constraint Programming for Music Composition - Wiley 2012
-- IJCAI 2024 Tutorial on CP for Music
-- Pachet and Roy - FlowComposer - 2014
-- Truchet and Assayag - OpenMusic - 2016
-
-### Approches suggerees
-- Modelisation CP avec contraintes d'harmonie
+- Modelisation CP avec contraintes d'harmonie (accords, voix)
 - Generation melodique avec contour et intervalles
 - Integration avec MIDI et synthesis audio
-- Interactive constraint programming
+- Interactive constraint programming (generation en temps reel)
 
 ### Technologies pertinentes
 Python, OR-Tools CP-SAT, music21, MIDIUtil
 
 ---
 
-## 16. Assistant de planification conversationnel (LLM + CSP)
+## 5. Assistant de planification conversationnel (LLM + CSP)
 
 ### Description du probleme et contexte
-Un assistant de planification conversationnel combine un LLM pour l'interaction en langage naturel et un solveur CP pour la resolution des contraintes. Le LLM extrait les preferences, le solveur trouve des solutions, le LLM explique et itere.
+Un assistant de planification conversationnel combine un LLM pour l'interaction en langage naturel et un solveur CP pour la resolution des contraintes. Le LLM extrait les preferences, le solveur trouve des solutions, le LLM explique et itere. Pipeline : LLM -> extraction -> CP -> LLM -> feedback. Ce sujet est ideal pour integrer des competences en IA generative et en optimisation.
 
 ### References
-- OpenAI Function Calling Documentation
-- Soon.works - LLM-assisted Constraint Programming - 2023
-- Xu et al. - Conversational Planning - 2023
-- MCP (Model Context Protocol) Specification
-- Pipeline : LLM -> extraction -> CP -> LLM -> feedback
-- Definition d'un schema de contraintes structure
+- [OpenAI Function Calling Documentation](https://platform.openai.com/docs/guides/function-calling)
+- [Soon.works - LLM-assisted Constraint Programming](https://www.soon.works/blog/why-chatgpt-and-llms-arent-ideal-for-automatically-generating-shift-schedules) - 2023
+- Xu et al. - *Conversational Planning* - 2023
+- [MCP (Model Context Protocol) Specification](https://modelcontextprotocol.io/)
+
+### Point de depart
+```python
+# Architecture MCP : le solveur CP est expose comme un outil MCP
+# Le LLM appelle l'outil avec les contraintes extraites du dialogue
+# Exemple : "Organise une reunion cette semaine avec 5 personnes"
+#   -> LLM extrait : participants, contraintes de disponibilite
+#   -> CP solveur : trouve un creneau compatible
+#   -> LLM : presente la solution en langage naturel
+
+# Voir le notebook agentique du cours pour un exemple d'integration
+```
+
+### Ressources supplementaires
+- [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk)
+- [LangChain Tools documentation](https://python.langchain.com/docs/modules/tools/)
+- [FastAPI pour le backend](https://fastapi.tiangolo.com/)
 
 ### Approches suggerees
 - Integration via MCP ou function calling
-- Cas d'usage : voyage, repas, evenements
+- Cas d'usage : voyage, repas, evenements, reunions
+- Definition d'un schema de contraintes structure
+- Interface web (Streamlit ou Flask)
 
 ### Technologies pertinentes
-Python, OR-Tools CP-SAT, OpenAI API/LM Studio, FastAPI
+Python, OR-Tools CP-SAT, OpenAI API/LM Studio, FastAPI, Streamlit
 
 ---
 
-## 17. Configuration de produit par contraintes
+## 6. Planification urbaine et placement d'infrastructures
 
 ### Description du probleme et contexte
-La configuration de produit consiste a selectionner des options (composants, features) pour construire un produit valide. Les contraintes de compatibilite et de prerequisites rendent ce probleme ideal pour la CP.
+La planification urbaine implique de localiser des infrastructures (ecoles, hopitaux, transports) pour maximiser l'accessibilite tout en minimisant les couts. Les contraintes incluent la capacite, la distance, et les preferences des residents. C'est une application de la theorie de la localisation (p-median, p-center, MCLP).
 
 ### References
-- foohardt/or-tools-product-configurator (GitHub)
-- Mittal and Frayman - Product Configuration - 1989
-- Hotz - Configuration as CSP - 2014
+- Chabrier - *Facility Location Problems* - 2006
+- [CACIC 2017 - Urban Planning with CP](https://www.sciencedirect.com/science/article/pii/S1877050917328424)
+- [IBM CP Optimizer Urban Planning Examples](https://www.ibm.com/docs/en/icos/20.1.0?topic=examples-facility-location-problems)
+- [OSMnx - Python for street networks](https://osmnx.readthedocs.io/)
 
-### Approches suggerees
-- Modelisation CSP avec variables de configuration
-- Contraintes de compatibilite et de prerequisites
-- Propagation des choix et explication
-- Integration avec interface web
+### Point de depart
+```python
+# Modelisation p-median : localiser p installations pour minimiser la distance totale
+# Variables : open[i] = 1 si installation a i, assign[j] = installation desservant j
+# Contraintes : exactement p installations ouvertes, couverture de chaque client
+# Objectif : minimiser la somme des distances
 
-### Technologies pertinentes
-Python, OR-Tools CP-SAT, Flask/FastAPI
+# Extension : integration donnees reelles via OSMnx (OpenStreetMap)
+import osmnx as ox
+G = ox.graph_from_place("Paris, France", network_type="drive")
+```
 
----
-
-## 18. Optimisation de portefeuille financier sous contraintes
-
-### Description du probleme et contexte
-L'optimisation de portefeuille (Markowitz) vise a maximiser le rendement pour un niveau de risque donne. Les contraintes incluent les limites de poids, les secteurs, et les couts de transaction. C'est un probleme quadratique avec contraintes lineaires.
-
-### References
-- Markowitz - Portfolio Selection - 1952
-- StackOverflow - CP-SAT for Portfolio Optimization
-- Michalewicz - Genetic Algorithms for Finance - 2000
-
-### Approches suggerees
-- Modelisation CP avec objectif de rendement
-- Contraintes de budget, de poids, de diversification
-- Linearisation de la variance (approximation)
-- Backtesting et scenario analysis
-
-### Technologies pertinentes
-Python, OR-Tools CP-SAT, pandas, yfinance
-
----
-
-## 19. Planification urbaine et placement d'infrastructures
-
-### Description du probleme et contexte
-La planification urbaine implique de localiser des infrastructures (ecoles, hopitaux, transports) pour maximiser l'accessibilite tout en minimisant les couts. Les contraintes incluent la capacite, la distance, et les preferences des residents.
-
-### References
-- IBM CP Optimizer Urban Planning Examples
-- Chabrier - Facility Location Problems - 2006
-- CACIC 2017 - Urban Planning with CP
+### Instances et donnees
+- [OSMnx pour les donnees geospatiales](https://github.com/gboeing/osmnx)
+- [GeoPandas pour la manipulation de donnees spatiales](https://geopandas.org/)
+- [p-median benchmark instances](https://github.com/McGill-Comp421/p-median)
 
 ### Approches suggerees
 - Modelisation p-median et p-center
 - Contraintes de capacite et de couverture
 - Multi-objectifs : accessibilite vs cout vs equite
-- Integration avec donnees geospatiales
+- Integration avec donnees geospatiales (OpenStreetMap)
 
 ### Technologies pertinentes
 Python, OR-Tools CP-SAT, GeoPandas, OSMnx
 
 ---
 
-## 20. Tournees de livraison vertes (Electric VRP)
+## 7. Tournees de livraison vertes (Electric VRP)
 
 ### Description du probleme et contexte
-Le Electric VRP etend le VRP classique avec des vehicules electriques ayant des contraintes d'autonomie et des besoins de recharge. L'objectif est de minimiser les emissions et le cout energetique.
+Le Electric VRP etend le VRP classique avec des vehicules electriques ayant des contraintes d'autonomie et des besoins de recharge. L'objectif est de minimiser les emissions et le cout energetique tout en satisfaisant la demande des clients. C'est un probleme d'actualite avec la transition ecologique de la logistique.
 
 ### References
-- Booth and Beck - Electric VRP with CP - 2018
-- Shaw - VRP with Constraint Programming - 1998
-- OR-Tools Routing Documentation
+- Booth and Beck - *Electric VRP with CP* - 2018. [PDF](https://www.researchgate.net/publication/333231312_A_Constraint_Programming_Approach_to_Electric_Vehicle_Routing_with_Time_Windows)
+- Shaw - *VRP with Constraint Programming* - 1998
+- [OR-Tools Routing Documentation](https://developers.google.com/optimization/routing)
+- [PyVRP Documentation](https://pyvrp.readthedocs.io/)
+
+### Point de depart
+```python
+# Modelisation CP : VRP avec contraintes d'energie
+# Variables : next[v,i] = prochain client apres i pour vehicule v
+#            energy[v,i] = niveau d'energie du vehicule v au client i
+# Contraintes : autonomie (energy >= 0), recharge aux stations
+# Objectif : minimiser distance + temps de recharge
+
+# Alternative : OR-Tools Routing (API de haut niveau)
+from ortools.constraint_solver import routing_enums_pb2, pywrapcp
+```
+
+### Instances et donnees
+- [EVRPTW instances (Booth et al.)](https://github.com/boothj/EVRPTW)
+- [PyVRP benchmark instances](https://github.com/PyVRP/PyVRP/tree/main/data)
+- [Solomon VRPTW instances](https://www.sintef.no/projectweb/top/vrptw/solomon-benchmark/)
 
 ### Approches suggerees
 - Modelisation CP avec contraintes d'energie
@@ -430,39 +285,35 @@ Le Electric VRP etend le VRP classique avec des vehicules electriques ayant des 
 - Scenario avec flotte mixte (electrique + thermique)
 
 ### Technologies pertinentes
-Python, OR-Tools Routing, PyVRP
+Python, OR-Tools Routing, PyVRP, NetworkX
 
 ---
 
-## 21. Jeux de strategie par CSP (Quoridor, Hex, etc.)
+## 8. Allocation de ressources cloud (VM Scheduling)
 
 ### Description du probleme et contexte
-Les jeux de strategie comme Quoridor (barrieres et deplacements) et Hex (connexion de bordes) peuvent etre resolus ou analyses par CSP. La modelisation permet de trouver des strategies gagnantes et d'explorer l'espace de jeu.
+Le placement de machines virtuelles (VM) sur des serveurs physiques vise a optimiser l'utilisation des ressources (CPU, RAM) tout en respectant les contraintes de capacite et de localisation. C'est un probleme de bin packing avec contraintes d'affinite et de securite. Applications : optimisation de couts AWS/GCP/Azure, consolidation de serveurs.
 
 ### References
-- Quoridor Rules (Gigamic)
-- AAAI Workshop on Board Games
-- Schaeffer - Games, Puzzles, and Computation - 2008
+- Zhang - *VM Resource Allocation with CP* - VCRA-CP. [PDF](https://arxiv.org/abs/1810.04465)
+- Van et al. - *VM Selection as CSP*
+- [Google OR-Tools Bin Packing example](https://developers.google.com/optimization/pack/bin_packing)
 
-### Approches suggerees
-- Modelisation CSP avec contraintes de mouvement
-- Recherche de strategie gagnante (retrograde analysis)
-- Generation de puzzles et niveaux
-- Integration avec IA classique (minimax, MCTS)
+### Point de depart
+```python
+# Modelisation CP-SAT : bin packing avec contraintes
+# Variables : bin[v] = serveur physique pour la VM v
+# Contraintes : capacite CPU/RAM par serveur, affinite/anti-affinite
+# Objectif : minimiser le nombre de serveurs actifs (consolidation)
 
-### Technologies pertinentes
-Python, OR-Tools CP-SAT, Z3, pygame
+from ortools.sat.python import cp_model
+# Voir aussi : OR-Tools bin_packing example
+```
 
----
-
-## 22. Allocation de ressources cloud (VM Scheduling)
-
-### Description du probleme et contexte
-Le placement de machines virtuelles (VM) sur des serveurs physiques vise a optimiser l'utilisation des ressources (CPU, RAM) tout en respectant les contraintes de capacite et de localisation. C'est un probleme de bin packing avec contraintes.
-
-### References
-- Zhang - VM Resource Allocation with CP - VCRA-CP
-- Van et al. - VM Selection as CSP
+### Instances et donnees
+- [VM scheduling instances - Azure public dataset](https://github.com/Azure/AzurePublicDataset)
+- [Google Cluster Trace](https://github.com/google/cluster-data)
+- [Bin Packing instances - CSPLib](https://www.csplib.org/Problems/prob054/)
 
 ### Approches suggerees
 - Modelisation bin packing avec CP
@@ -471,38 +322,36 @@ Le placement de machines virtuelles (VM) sur des serveurs physiques vise a optim
 - Dynamic allocation et migration
 
 ### Technologies pertinentes
-Python, OR-Tools CP-SAT, pulp
+Python, OR-Tools CP-SAT, PuLP
 
 ---
 
-## 23. Planification multi-robots dans un entrepot
+## 9. Planification de trajectoire robotique sous contraintes
 
 ### Description du probleme et contexte
-La planification multi-robots (MAPF - Multi-Agent Path Finding) consiste a coordonner les deplacements de plusieurs robots dans un espace partage. Les contraintes incluent l'evitement de collision et l'optimisation du temps total.
+La planification de trajectoire (path planning) pour robots mobiles implique de trouver un chemin executable en respectant les contraintes cinematiques et dynamiques. Les environnements dynamiques ajoutent de la complexite. C'est un sujet au croisement de la CP et de la robotique.
 
 ### References
-- Booth - MAPF with CP - ICAPS 2016
-- Wang et al. - MAPF Survey - AAMAS 2019
+- Wang et al. - *Multi-Robot Path Planning Survey* - AAMAS 2019. [PDF](https://www.aaai.org/ojs/index.php/AIIDE/article/view/5143)
+- Lopez et al. - *Robot Motion Planning* - ICAPS 2012
+- [Shapely - geometric manipulation](https://shapely.readthedocs.io/)
 
-### Approches suggerees
-- Modelisation CSP avec contraintes spatiales et temporelles
-- Conflict-Based Search (CBS) et CP
-- Decomposition : planification individuelle + coordination
-- Application : entrepots, usines 4.0
+### Point de depart
+```python
+# Modelisation CSP : discretisation espace-temps
+# Variables : pos[t] = (x, y) du robot au temps t
+# Contraintes : obstacles (pos[t] not in obstacles),
+#               cinematique (||pos[t+1] - pos[t]|| <= max_speed)
+# Objectif : minimiser le temps d'arrivee
 
-### Technologies pertinentes
-Python, OR-Tools CP-SAT, NetworkX
+import shapely.geometry as geom
+# Voir aussi : A* comme base de comparaison
+```
 
----
-
-## 24. Planification de trajectoire robotique sous contraintes
-
-### Description du probleme et contexte
-La planification de trajectoire (path planning) pour robots mobiles implique de trouver un chemin executable en respectant les contraintes cinematiques et dynamiques. Les environnements dynamiques ajoutent de la complexite.
-
-### References
-- Wang et al. - Path Planning Survey - AAMAS 2019
-- Lopez et al. - Robot Motion Planning - ICAPS 2012
+### Ressources supplementaires
+- [ROS (Robot Operating System)](https://www.ros.org/) - Framework robotique
+- [Navigation2 Stack](https://navigation.ros.org/) - Navigation autonome
+- [Open Motion Planning Library (OMPL)](https://ompl.kavrakilab.org/)
 
 ### Approches suggerees
 - Modelisation CSP avec discretisation espace-temps
@@ -515,16 +364,39 @@ Python, OR-Tools CP-SAT, Shapely, ROS
 
 ---
 
-## 25. Verification de contrats intelligents (blockchain) par contraintes
+## 10. Verification de contrats intelligents (blockchain) par contraintes
 
 ### Description du probleme et contexte
-La verification formelle de smart contracts (Ethereum) utilise SMT solvers comme Z3 pour detecter les vulnerabilites (re-entrancy, overflow). La modelisation des contraintes d'execution permet une analyse statique rigoureuse.
+La verification formelle de smart contracts (Ethereum) utilise SMT solvers comme Z3 pour detecter les vulnerabilites (re-entrancy, overflow, access control). La modelisation des contraintes d'execution permet une analyse statique rigoureuse. C'est un sujet en forte demande dans l'industrie blockchain.
 
 ### References
-- Luu et al. - Oyente - CCS 2016
-- Solidity SMTChecker Documentation
-- Zellic - WETH Audit - 2020
-- FlawCheck - Smart Contract Verification - 2020
+- Luu et al. - *Oyente* - CCS 2016. [PDF](https://eprint.iacr.org/2015/404.pdf)
+- [Solidity SMTChecker Documentation](https://docs.soliditylang.org/en/latest/smtchecker.html)
+- Zellic - *WETH Audit* - 2020
+- [Mythril - symbolic execution for smart contracts](https://github.com/Consensys/mythril)
+
+### Point de depart
+```python
+# Modelisation SMT avec Z3
+from z3 import *
+
+# Variables : mapping des variables d'etat du contrat
+balance = Int('balance')
+amount = Int('amount')
+
+# Contraintes : invariants du contrat
+solver = Solver()
+solver.add(balance >= 0)
+solver.add(amount >= 0)
+solver.add(amount <= balance)  # precondition de transfert
+
+# Verification : trouver un contre-exemple (vulnerabilite)
+```
+
+### Ressources supplementaires
+- [Ethereum Smart Contract Best Practices](https://consensys.github.io/smart-contract-best-practices/)
+- [Slither - static analyzer for Solidity](https://github.com/crytic/slither)
+- [Hardhat - development framework](https://hardhat.org/)
 
 ### Approches suggerees
 - Modelisation SMT avec Z3
@@ -537,15 +409,29 @@ Python, Z3 SMT Solver, Solidity, Slither
 
 ---
 
-## 26. Selection de transactions dans un bloc blockchain
+## 11. Selection de transactions dans un bloc blockchain
 
 ### Description du probleme et contexte
-La selection de transactions pour un bloc blockchain est un probleme de knapsack avec contraintes de taille et de frais (gas). Les mineurs/selecteurs doivent maximiser les frais tout en respectant les limites de bloc.
+La selection de transactions pour un bloc blockchain est un probleme de knapsack avec contraintes de taille et de frais (gas). Les mineurs/selecteurs doivent maximiser les frais tout en respectant les limites de bloc. C'est un cas d'application concret de l'optimisation combinatoire.
 
 ### References
-- Bonneau et al. - On Bitcoin Mining - CITP 2014
-- Narayanan et al. - Bitcoin and Cryptocurrency Technologies
-- Arxiv - MEV and Transaction Ordering - 2024
+- Bonneau et al. - *On Bitcoin Mining* - CITP 2014. [PDF](https://freedom-to-tinker.com/wp-content/uploads/sites/7/2014/10/BitcoinMining-tocs.pdf)
+- Narayanan et al. - *Bitcoin and Cryptocurrency Technologies* - Princeton
+- [Arxiv - MEV and Transaction Ordering](https://arxiv.org/abs/2310.00027) - 2024
+
+### Point de depart
+```python
+# Modelisation knapsack avec CP-SAT
+# Variables : include[t] = 1 si la transaction t est incluse dans le bloc
+# Contraintes : sum(size[t] * include[t]) <= block_size_limit
+# Contraintes : dependances entre transactions (si tx_parent incluse, tx_child possible)
+# Objectif : maximiser sum(fee[t] * include[t])
+```
+
+### Instances et donnees
+- [Ethereum transaction datasets](https://etherscan.io/)
+- [Bitcoin transaction data](https://blockchain.info/)
+- [MEV-Explore - transaction ordering](https://explore.mev.wiki/)
 
 ### Approches suggerees
 - Modelisation knapsack avec CP-SAT
@@ -558,15 +444,30 @@ Python, OR-Tools CP-SAT, web3.py
 
 ---
 
-## 27. Optimisation energetique de centres de donnees (Green Scheduling)
+## 12. Optimisation energetique de centres de donnees (Green Scheduling)
 
 ### Description du probleme et contexte
-L'optimisation energetique des data centers vise a reduire la consommation electrique en regroupant les charges sur moins de serveurs (consolidation) et en utilisant les energies renouvelables. Les contraintes incluent la performance et le refroidissement.
+L'optimisation energetique des data centers vise a reduire la consommation electrique en regroupant les charges sur moins de serveurs (consolidation) et en utilisant les energies renouvelables. Les contraintes incluent la performance et le refroidissement. Google a publie des travaux pionniers sur le sujet.
 
 ### References
-- Kishore et al. - Green Scheduling - IEEE 2018
-- Google - Carbon Intelligent Computing
-- OR StackExchange - Data Center Optimization
+- Kishore et al. - *Green Scheduling* - IEEE 2018
+- [Google - Carbon Intelligent Computing](https://ai.googleblog.com/2020/06/carbon-aware-computing-for-data.html)
+- [OR StackExchange - Data Center Optimization](https://or.stackexchange.com/questions/tagged/data-centers)
+
+### Point de depart
+```python
+# Modelisation CP : consolidation de VMs
+# Variables : active[s] = 1 si le serveur s est allume
+#            assign[v] = serveur pour la VM v
+# Contraintes : capacite CPU/RAM par serveur, temperature
+# Objectif : minimiser sum(active[s]) + penalites temperature
+
+# Extension : prise en compte du prix de l'electricite horaire
+```
+
+### Instances et donnees
+- [Google Cluster Trace](https://github.com/google/cluster-data) - Donnees reelles de clusters
+- [PlanetLab traces](https://www.planet-lab.org/)
 
 ### Approches suggerees
 - Modelisation CP avec contraintes de placement
@@ -575,60 +476,28 @@ L'optimisation energetique des data centers vise a reduire la consommation elect
 - Dynamic workload management
 
 ### Technologies pertinentes
-Python, OR-Tools CP-SAT, pulp
+Python, OR-Tools CP-SAT, PuLP
 
 ---
 
-## 28. Affectation d'etudiants a des projets/stages
+## 13. Placement de services en edge computing avec contraintes de latence
 
 ### Description du probleme et contexte
-L'affectation d'etudiants a des projets ou stages implique de matcher les preferences des etudiants avec les offres des entreprises, tout en respectant les capacites et la diversite. C'est une extension du probleme des mariages stables.
+Le placement de services en edge computing consiste a deployer des applications sur des noeuds de calcul distribues pour minimiser la latence et la consommation de bande passante. Les contraintes incluent les ressources et la localisation. Applications : IoT, 5G, applications temps reel.
 
 ### References
-- Gent - Stable Marriage for Student Allocation - CP
-- Manlove - Student-Project Allocation Problem - SPA-P
+- Zhang - *Edge Placement with CP* - ENPP. [PDF](https://arxiv.org/abs/2101.00127)
+- Guyonet et al. - *Edge Resource Allocation* - CP 2021
+- [Azure Edge Zones Documentation](https://azure.microsoft.com/en-us/products/edge-zones/)
 
-### Approches suggerees
-- Modelisation CP avec preferences
-- Extension du Stable Marriage Algorithm
-- Contraintes de capacite et de diversite
-- Optimisation du welfare global
-
-### Technologies pertinentes
-Python, OR-Tools CP-SAT, NetworkX
-
----
-
-## 29. Generation automatique de cas de test logiciel par contraintes
-
-### Description du probleme et contexte
-La generation de cas de test par execution symbolique (symbolic execution) consiste a explorer les chemins d'execution d'un programme en resolvant les contraintes sur les entrees. Z3 et autres SMT solvers sont utilises pour generer des inputs.
-
-### References
-- Cadar et al. - KLEE - OSDI 2008
-- Godefroid et al. - DART - PLDI 2005
-- VerificationGlasses Tutorial
-- Symbolic execution avec Z3
-
-### Approches suggerees
-- Generation de inputs pour atteindre du code
-- Detection de bugs et vulnerabilites
-- Integration avec CI/CD
-
-### Technologies pertinentes
-Python, Z3 SMT Solver, angr, triton
-
----
-
-## 30. Placement de services en edge computing avec contraintes de latence
-
-### Description du probleme et contexte
-Le placement de services en edge computing consiste a deployer des applications sur des noeuds de calcul distribues pour minimiser la latence et la consommation de bande passante. Les contraintes incluent les ressources et la localisation.
-
-### References
-- Zhang - Edge Placement with CP - ENPP
-- Guyonet et al. - Edge Resource Allocation - CP 2021
-- Azure Edge Zones Documentation
+### Point de depart
+```python
+# Modelisation p-median avec contraintes de ressources
+# Variables : place[s] = 1 si le service s est deploye sur le noeud n
+#            route[u] = noeud edge servant l'utilisateur u
+# Contraintes : ressources par noeud, latence max
+# Objectif : minimiser latence moyenne + cout de deploiement
+```
 
 ### Approches suggerees
 - Modelisation p-median avec contraintes de ressources
@@ -641,15 +510,29 @@ Python, OR-Tools CP-SAT, Kubernetes API
 
 ---
 
-## 31. Ordonnancement de missions satellites
+## 14. Ordonnancement de missions satellites (Satellite Scheduling)
 
 ### Description du probleme et contexte
-Le satellite scheduling problem consiste a planifier les prises de vue et les communications de satellites en respectant les contraintes orbitales, energetiques et de priorite. C'est un probleme de scheduling avec fenetres de temps.
+Le satellite scheduling problem consiste a planifier les prises de vue et les communications de satellites en respectant les contraintes orbitales, energetiques et de priorite. C'est un probleme de scheduling avec fenetres de temps, utilise par le CNES (SPIKE), la NASA (EUROPA) et l'ESA.
 
 ### References
-- Frank et al. - EUROPA - NASA
-- Jussien - Satellite Scheduling with CP - ONERA 2015
-- DIMACS Challenge 1998
+- Frank et al. - *EUROPA* - NASA. [Site](https://github.com/nasa/Intelligent-Data-Management)
+- Jussien - *Satellite Scheduling with CP* - ONERA 2015
+- [DIMACS Challenge 1998](https://www2.cs.sfu.ca/CourseCentral/827/havens/papers/topic%2312(SatelliteScheduling)/dimacs98.pdf)
+
+### Point de depart
+```python
+# Modelisation CP avec intervalles et fenetres de temps
+# Variables : intervalles pour chaque observation (debut, fin, satellite)
+# Contraintes : pas de chevauchement sur un meme satellite/station sol
+#              fenetres de visibilite des cibles
+#              energie disponible
+# Objectif : maximiser la somme des priorites des observations
+```
+
+### Instances et donnees
+- [Satellite Scheduling Benchmark - DIMACS](https://www2.cs.sfu.ca/CourseCentral/827/)
+- [Skyfield - astronomy library](https://rhodesmill.org/skyfield/) - Calcul orbital
 
 ### Approches suggerees
 - Modelisation CP avec intervalles et fenetres de temps
@@ -662,46 +545,144 @@ Python, OR-Tools CP-SAT, Skyfield (astronomy)
 
 ---
 
-## 32. Planification d'itineraires touristiques personnalises (TTDP/Orienteering)
+## 15. Cryptanalyse d'un chiffre par substitution (decryptage automatise)
 
 ### Description du probleme et contexte
-Le Tourist Trip Design Problem (TTDP) consiste a selectionner et ordonnancer des points d'interet pour maximiser la satisfaction du touriste tout en respectant les contraintes de temps, de budget et de localisation. C'est une variante du Orienteering Problem.
+La cryptanalyse de chiffres par substitution monoalphabetique consiste a retrouver la clef de chiffrement en analysant la distribution des lettres et les motifs du texte. La modelisation CSP permet de combiner des contraintes linguistiques et statistiques. C'est un sujet classique de la cryptographie combinatoire.
 
 ### References
-- Vu et al. - Branch-and-Check for TTDP
-- Souffriau et al. - TTDP Survey
-- Vansteenwegen et al. - Orienteering Problem Survey
-- Wikipedia - Orienteering Problem -
+- Cornell - *Cryptanalysis with CSP* - BOOM 2001. [Page](https://www.cs.cornell.edu/boom/2001sp/Barry/)
+- Lucks - *Cryptanalysis and CP* - Crypto 1988
+- [Wikipedia - Substitution cipher](https://en.wikipedia.org/wiki/Substitution_cipher)
+- [hakank.org - OR-Tools cryptarithm solver](https://hakank.org/or-tools/cryptarithm.py)
 
-### Approches suggerees
-- Modelisation CP avec scores et durees
-- Contraintes de temps et de budget
-- Personnalisation par preferences utilisateur
-- Integration avec donnees geospatiales (OSM)
+### Point de depart
+```python
+# Modelisation CSP avec contraintes de permutation
+# Variables : mapping[l] = lettre claire pour la lettre chiffree l
+# Contraintes : AllDifferent (bijection), mots dans le dictionnaire
+# Extension : frequences des lettres, bigrammes, trigrammes
 
-### Technologies pertinentes
-Python, OR-Tools CP-SAT, OSMnx, pandas
+from ortools.sat.python import cp_model
+# Voir aussi : hakank.org pour des exemples de cryptarithmes
+```
 
----
-
-## 33. Cryptanalyse d'un chiffre par substitution (decryptage automatise)
-
-### Description du probleme et contexte
-La cryptanalyse de chiffres par substitution monoalphabetique consiste a retrouver la clef de chiffrement en analysant la distribution des lettres et les motifs du texte. La modelisation CSP permet de combiner des contraintes linguistiques et statistiques.
-
-### References
-- Cornell - Cryptanalysis with CSP - BOOM 2001
-- Lucks - Cryptanalysis and CP - Crypto 1988
-- Wikipedia - Substitution cipher -
+### Instances et donnees
+- [Cryptogram solving - Wikipedia](https://en.wikipedia.org/wiki/Cryptogram)
+- [NLTK - corpus et dictionnaires](https://www.nltk.org/) - word lists, frequency data
+- [English letter frequency data](https://en.wikipedia.org/wiki/Letter_frequency)
 
 ### Approches suggerees
 - Modelisation CSP avec contraintes de permutation
 - Frequences des lettres et bigrammes
 - Dictionnaire et motifs de mots
-- Integration avec NLP (language models)
+- Integration avec NLP (language models pour le scoring)
 
 ### Technologies pertinentes
 Python, OR-Tools CP-SAT, NLTK, frequency analysis
 
 ---
 
+## 16. Solveurs SMT pour la biologie synthetique
+
+### Description du probleme et contexte
+La biologie synthetique utilise des solveurs SMT pour verifier la coherence de modeles biologiques, detecter des contradictions dans des reseaux de regulation genetique, et concevoir des circuits genetiques. Ce sujet combine optimisation combinatoire et biologie computationnelle, un domaine en pleine expansion.
+
+### References
+- [BioSMT - SMT solving for biology](https://github.com/biosynthesis/biosmt)
+- Bartocci et al. - *SMT-based analysis of biological systems* - 2020. [PDF](https://arxiv.org/abs/2005.07028)
+- [iBioSim - genetic circuit design tool](https://async.ece.utah.edu/ibiosim/)
+- [SBOL - Synthetic Biology Open Language](https://sbolstandard.org/)
+
+### Point de depart
+```python
+# Modelisation SMT : verification de reseaux de regulation genetique
+# Variables : concentration[g, t] = niveau d'expression du gene g au temps t
+# Contraintes : relations d'activation/inhibition entre genes
+#              bornes de concentration
+# Verification : trouver un etat atteignable qui viole une propriete
+
+from z3 import Real, Solver, And, Or, Implies
+```
+
+### Ressources supplementaires
+- [Antimony - model description language](https://antimony.sourceforge.io/)
+- [Tellurium - Python for systems biology](http://tellurium.analogmachine.org/)
+
+### Approches suggerees
+- Modelisation SMT pour la verification de reseaux de regulation
+- Detection de contradictions et identification de parametres critiques
+- Conception assistee de circuits genetiques
+- Comparaison avec la simulation numerique classique
+
+### Technologies pertinentes
+Python, Z3 SMT Solver, Tellurium, libSBML
+
+---
+
+## 17. Participation a une competition CP/SAT/SMT
+
+### Description du probleme et contexte
+Chaque annee, plusieurs competitions internationales evaluent les progres en resolution de problemes CP, SAT et SMT. Les contributions prennent deux formes : (1) developpement de solveurs ou d'heuristiques, (2) creation de benchmarks et instances de test. Participer a une competition est une excellente facon de se mesurer a l'etat de l'art.
+
+### Competitions disponibles
+- **MiniZinc Challenge** : modelisation CP en MiniZinc. [Site](https://www.minizinc.org/challenge.html) (juin-juillet)
+- **SAT Competition** : solveurs SAT. [Site](https://satcompetition.github.io/2024/) (juillet)
+- **SMT-COMP** : solveurs SMT. [Site](https://smtcomp.github.io/2024/) (juillet)
+- **International Planning Competition (IPC)** : planification. [Site](https://ipc2024.net/) (aout)
+- **International Timetabling Competition (ITC)** : emploi du temps. [Site](https://www.itc2024.org/)
+
+### Point de depart
+```python
+# Option 1 : Participer avec OR-Tools CP-SAT
+#   - Choisir une categorie de la MiniZinc Challenge
+#   - Modeliser les instances en Python avec CP-SAT
+#   - Comparer les performances avec les solutions reference
+
+# Option 2 : Creer des benchmarks originaux
+#   - Choisir un probleme reel non couvert par CSPLib
+#   - Generer des instances de difficulte croissante
+#   - Proposer un article decrivant les instances
+```
+
+### Ressources supplementaires
+- [CSPLib - Problem Library](https://www.csplib.org/) - Problemes de reference
+- [MiniZinc - Documentation](https://www.minizinc.org/doc-2.5.5/en/) - Langage de modelisation
+- [Past competition results](https://www.minizinc.org/challenge/results.html)
+
+### Approches suggerees
+- Choix d'une competition et d'une categorie
+- Modelisation avec CP-SAT ou Z3
+- Optimisation des performances (search strategies, symmetry breaking)
+- Redaction d'un rapport comparatif avec l'etat de l'art
+
+### Technologies pertinentes
+Python, OR-Tools CP-SAT, MiniZinc, Z3
+
+---
+
+## Annexe : sujets supprimes (risque de plagiat)
+
+Les sujets suivants ont ete retires car ils ont deja ete traites par des etudiants d'au moins une ecole (Epita 2025, ECE 2026, EPF 2025/2026), ce qui represente un risque de plagiat inacceptable.
+
+| # | Sujet | Traite par |
+|---|-------|-----------|
+| - | Nurse Rostering | Epita 2025 + ECE 2026 |
+| - | Job-Shop Scheduling | Epita 2025 + EPF |
+| - | VRP classique | EPF |
+| - | Timetabling universitaire | Epita 2025 + EPF |
+| - | Sports Tournament Scheduling | Epita 2025 + ECE 2026 |
+| - | Sudoku | Epita 2025 |
+| - | Wordle Solver | Epita 2025 + ECE 2026 + EPF |
+| - | Minesweeper/Demineur | Epita 2025 (3 groupes!) + ECE 2026 + EPF |
+| - | Mots-croises | Epita 2025 + ECE 2026 + EPF |
+| - | Stable Marriage | EPF |
+| - | Graph/Map Coloring | ECE 2026 |
+| - | Product Configuration | Epita 2025 + EPF |
+| - | Portfolio Optimization | Epita 2025 + ECE 2026 |
+| - | Quoridor | Epita 2025 |
+| - | Multi-Robot Warehouse | Epita 2025 |
+| - | Student Allocation | Epita 2025 |
+| - | Test Generation | Epita 2025 |
+| - | Satellite Scheduling | Epita 2025 |
+| - | Tourist Itinerary | Epita 2025 |
